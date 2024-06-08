@@ -465,6 +465,26 @@ static GIOChannel *irssi_ssl_get_iochannel(GIOChannel *handle, int port, SERVER_
 	if(!(fd = g_io_channel_unix_get_fd(handle)))
 		return NULL;
 
+	/* When connecting through an HTTP proxy we need to establish the connection via the HTTP CONNECT method *before* the TLS connection. */
+	/* TODO: Proxy password support */
+	if (server->connrec->proxy != NULL) {
+		char *cmd;
+		char buf[2048];
+		int bytes;
+		if (server->connrec->proxy_string != NULL) {
+			cmd = g_strdup_printf(server->connrec->proxy_string, server->connrec->address, server->connrec->port);
+			g_print("proxy_string: %s", cmd);
+			if (net_sendbuffer_send(server->handle, cmd, strlen(cmd)) == -1) {
+				g_error("Failed to send proxy_string");
+				return NULL;
+			}
+			g_free(cmd);
+			sleep(3);  /* FIXME: This is obviously bad code */
+			bytes = net_receive(server->handle->handle, buf, sizeof(buf));
+			g_print("Received %i bytes", bytes); /* TODO: Need to read and check the HTTP response */
+		}
+	}
+
 	ERR_clear_error();
 	ctx = SSL_CTX_new(SSLv23_client_method());
 	if (ctx == NULL) {
