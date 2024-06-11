@@ -267,16 +267,13 @@ static void server_init_1(IRC_SERVER_REC *server)
 
 	conn = server->connrec;
 
-	/* TODO: If this is sent before the TLS handshake then it probably shouldn't be sent again here:
-			You are already connected and cannot handshake again
-	*/
-	if (conn->proxy != NULL && conn->proxy_password != NULL && *conn->proxy_password != '\0') {
+	if (conn->proxy != NULL && !conn->use_tls && conn->proxy_password != NULL && *conn->proxy_password != '\0') {
 		cmd = g_strdup_printf("PASS %s", conn->proxy_password);
 		irc_send_cmd_now(server, cmd);
 		g_free(cmd);
 	}
 
-	if (conn->proxy != NULL && conn->proxy_string != NULL) {
+	if (conn->proxy != NULL && !conn->use_tls && conn->proxy_string != NULL) {
 		cmd = g_strdup_printf(conn->proxy_string, conn->address, conn->port);
 		irc_send_cmd_now(server, cmd);
 		g_free(cmd);
