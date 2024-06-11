@@ -475,9 +475,10 @@ static GIOChannel *irssi_ssl_get_iochannel(GIOChannel *handle, int port, SERVER_
 		if (server->connrec->proxy_password != NULL && *server->connrec->proxy_password != '\0') {
 			cmd = g_strdup_printf("PASS %s", server->connrec->proxy_password);
 			ret = net_sendbuffer_send(server->handle, cmd, strlen(cmd));
+			net_sendbuffer_flush(server->handle);
 			g_free(cmd);
 			if (ret == -1) {
-				g_print("Failed to send proxy_pass");
+				g_print("Failed to send proxy_pass\n");
 				return NULL;
 			}
 		}
@@ -485,14 +486,15 @@ static GIOChannel *irssi_ssl_get_iochannel(GIOChannel *handle, int port, SERVER_
 		if (server->connrec->proxy_string != NULL) {
 			cmd = g_strdup_printf(server->connrec->proxy_string, server->connrec->address, server->connrec->port);
 			ret = net_sendbuffer_send(server->handle, cmd, strlen(cmd));
+			net_sendbuffer_flush(server->handle); /* Reconnecting fails without this (?!) */
 			g_free(cmd);
 			if (ret == -1) {
-				g_print("Failed to send proxy_string");
+				g_print("Failed to send proxy_string\n");
 				return NULL;
 			}
 			sleep(3);  /* FIXME: This is obviously bad code */
 			bytes = net_receive(server->handle->handle, buf, sizeof(buf));
-			g_print("Discarding %i bytes", bytes); /* TODO: Need to read and check the HTTP response */
+			g_print("Discarding %i bytes\n", bytes); /* TODO: Need to read and check the HTTP response */
 		}
 	}
 
