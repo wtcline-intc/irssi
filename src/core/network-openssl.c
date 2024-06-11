@@ -466,22 +466,33 @@ static GIOChannel *irssi_ssl_get_iochannel(GIOChannel *handle, int port, SERVER_
 		return NULL;
 
 	/* When connecting through an HTTP proxy we need to establish the connection via the HTTP CONNECT method *before* the TLS connection. */
-	/* TODO: Proxy password support */
 	if (server->connrec->proxy != NULL) {
 		char *cmd;
 		char buf[2048];
 		int bytes;
-		if (server->connrec->proxy_string != NULL) {
-			cmd = g_strdup_printf(server->connrec->proxy_string, server->connrec->address, server->connrec->port);
-			g_print("proxy_string: %s", cmd);
-			if (net_sendbuffer_send(server->handle, cmd, strlen(cmd)) == -1) {
-				g_error("Failed to send proxy_string");
+		int ret;
+
+		if (server->connrec->proxy_password != NULL && *server->connrec->proxy_password != '\0') {
+			cmd = g_strdup_printf("PASS %s", server->connrec->proxy_password);
+			ret = net_sendbuffer_send(server->handle, cmd, strlen(cmd));
+			g_free(cmd);
+			if (ret == -1) {
+				g_print("Failed to send proxy_pass");
 				return NULL;
 			}
+		}
+
+		if (server->connrec->proxy_string != NULL) {
+			cmd = g_strdup_printf(server->connrec->proxy_string, server->connrec->address, server->connrec->port);
+			ret = net_sendbuffer_send(server->handle, cmd, strlen(cmd));
 			g_free(cmd);
+			if (ret == -1) {
+				g_print("Failed to send proxy_string");
+				return NULL;
+			}
 			sleep(3);  /* FIXME: This is obviously bad code */
 			bytes = net_receive(server->handle->handle, buf, sizeof(buf));
-			g_print("Received %i bytes", bytes); /* TODO: Need to read and check the HTTP response */
+			g_print("Discarding %i bytes", bytes); /* TODO: Need to read and check the HTTP response */
 		}
 	}
 
